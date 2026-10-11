@@ -1,0 +1,17 @@
+Account,Debit,Credit,Category,Ratio group
+Bank current account,420000,0,Assets,Cash & bank
+Trade receivables,680000,0,Assets,Receivables
+Inventory,350000,0,Assets,Inventory
+Plant & equipment,900000,0,Assets,Non-current assets
+Trade payables,0,450000,Liabilities,Trade payables
+Term loan,0,600000,Liabilities,Long-term debt
+Share capital,0,1000000,Equity,Equity
+Retained earnings,0,100000,Equity,Equity
+Sales revenue,0,1800000,Income,Revenue
+Cost of goods sold,1100000,0,Expenses,Cost of sales
+Salaries,240000,0,Expenses,Operating expenses
+Rent expense,120000,0,Expenses,Operating expenses
+Utilities expense,80000,0,Expenses,Operating expenses
+Depreciation,30000,0,Expenses,Depreciation & amortisation
+Interest expense,20000,0,Expenses,Interest expense
+Income tax expense,10000,0,Expenses,Tax expense

@@ -20,12 +20,28 @@ Open http://127.0.0.1:4173. No package installation or internet connection is re
 
 ## Workflow
 
-1. Import XLSX, XLS, XLSM or CSV (maximum 10 MB). Macros are never executed.
-2. Choose worksheet and header row; map account, closing debit, closing credit, and optional category columns.
+1. Import up to three XLSX, XLS, XLSM or CSV files at once (maximum 10 MB each). Macros are never executed. One dataset holds three periods; a separate peer dataset holds three more.
+2. For each file, select a slot, period label, start/end dates, worksheet, and header row. Map account, closing debit, closing credit, and optional category/ratio group columns. To use three worksheets from one workbook, import that workbook into each slot and select the relevant worksheet. Periods are sorted chronologically; overlapping dates are rejected.
 3. Correct invalid source rows and import again. Blank amounts count as zero; named Total / Grand Total rows are excluded.
-4. Review and edit classifications. Name-based suggestions are not authoritative.
-5. Inspect reconciliation, duplicate accounts, unusual balance directions, and unclassified accounts.
-6. Export an Excel pack or use Print / PDF brief to save a local PDF.
+4. In Review data, review each period's ratio groups and confirm completeness. Suggestions are not authoritative. Purchases are left unmapped until stock adjustments are included in cost of sales. Changing a classification revokes that period's confirmation.
+5. Inspect Overview, Drivers & ratios, Peer comparison, Review data, and Evidence & checks. Add peer TBs to compare periods with identical start/end dates. The three-period sample includes an illustrative peer when loaded using the sample button.
+6. Enter operating cash flow and a source note for each period in Review data to enable CFO/PAT. Blank means unavailable; an explicitly entered zero is valid.
+7. Export an Excel pack containing all company/peer TBs, ratio formulas, account drivers, comparisons, and evidence. Print / PDF includes the active dataset's analysis plus peer comparisons.
+
+Use standalone period income and expenses, not cumulative YTD figures. The first real import removes illustrative periods from that dataset. Replacing one real period preserves the other two. All data remains in page memory.
+
+## Ratios and comparison rules
+
+All twelve reference ratios are included: revenue growth, EBITDA margin, PAT margin, current ratio, debt/equity, interest coverage, return on equity, CFO/PAT, receivable days, inventory days, payable days, and cash conversion cycle. Gross margin, quick ratio, and return on average assets are also included. Each row shows all periods, latest-period change (percentage points for percentage ratios), and its formula.
+
+- Ratios require complete, confirmed ratio groups. Missing inputs and non-positive denominators produce N/A, never infinity or invented values.
+- Revenue growth compares durations differing by at most one day (to accommodate leap years).
+- Day ratios use closing balances and actual period days, matching the reference's closing-balance convention. Total revenue proxies credit sales; COGS proxies credit purchases. Quarter/month day counts are not forced to 365.
+- EBITDA includes other income under the displayed formula. PAT depends on included interest, tax, and adjustments.
+- ROE and debt/equity use mapped closing equity; profit is not automatically added because that could double-count closed earnings.
+- Return on average assets requires the preceding period to end one day before the current period starts; it is not annualised.
+- CFO is supplied from a cash-flow statement or reconciled schedule, with evidence retained. It is not guessed from TB movements.
+- Account drivers aggregate matching names case-insensitively. Renamed accounts remain separate. Different classifications across periods are flagged.
 
 Amounts are INR, with dot decimal separators and optional comma grouping. Debit and credit columns must be non-negative. Calculations use integer paise; totals outside JavaScript's safe integer range are rejected. Only closing debit/credit format is supported; convert signed-balance or opening/movement exports first. Subtotal rows other than exact Total / Grand Total must be removed from the input.
 
@@ -37,7 +53,7 @@ TB data is kept only in page memory, never localStorage or a database. Refreshin
 
 ## Accounting scope
 
-The financial summary is provisional and based on reviewed account categories. Balance agreement does not prove completeness or correctness. Contra accounts may legitimately trigger unusual-direction flags. This app does not infer cash flows, comparative trends, ageing, statutory disclosures, or current/non-current ratios from a single TB. PDFs are not accepted as structured TB inputs.
+The financial summary and ratios are provisional and based on reviewed account groups. Balance agreement does not prove completeness or correctness. Contra accounts may legitimately trigger unusual-direction flags. Trends require multiple TBs; liquidity ratios require reviewed current/non-current groupings. Cash flows, ageing, and statutory disclosures are not inferred from TBs. PDFs are not accepted as structured TB inputs.
 
 ## Third-party software
 
