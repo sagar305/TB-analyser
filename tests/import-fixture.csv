@@ -1,0 +1,3 @@
+Account,Debit,Credit,Category
+Bank,10000,0,Assets
+Capital,0,10000,Equity

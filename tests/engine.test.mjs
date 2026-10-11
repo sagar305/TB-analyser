@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {amount,mapRows,analyse,sample} from '../frontend/engine.js';
+const mapping={header:0,name:0,debit:1,credit:2,category:3};
+test('sample reconciles exactly and computes provisional profit',()=>{const r=analyse(mapRows(sample,mapping).rows);assert.equal(r.debit,395000000);assert.equal(r.credit,395000000);assert.equal(r.profit,20000000);assert.equal(r.balanced,true);});
+test('decimal amounts use integer minor units',()=>{assert.equal(amount('1,23,456.78'),12345678);assert.equal(amount('(10.25)'),-1025);assert.equal(amount(''),0);assert.throws(()=>amount('12abc'));assert.throws(()=>amount('Infinity'));assert.throws(()=>amount('1.234'));});
+test('bad rows cannot silently enter analysis',()=>{const r=mapRows([sample[0],['Cash','oops',0],['',10,0],['Negative',-1,0]],mapping);assert.equal(r.errors.length,3);assert.equal(r.rows.length,0);});
+test('total rows excluded and source rows preserved',()=>{const r=mapRows([sample[0],['Bank',10,0],['Capital',0,10],['Grand Total',10,10]],mapping);assert.equal(r.rows.length,2);assert.equal(r.rows[1].sourceRow,3);assert.equal(analyse(r.rows).balanced,true);});
+test('imbalance and review exceptions retained',()=>{const r=analyse([{name:'Cash',debit:100,credit:200,category:'Assets'},{name:'Cash',debit:0,credit:0,category:'Unclassified'}]);assert.equal(r.difference,-100);assert.equal(r.issues.length,4);});
+test('classification changes update profit',()=>{const rows=mapRows(sample,mapping).rows;rows.find(r=>r.name==='Rent expense').category='Assets';assert.equal(analyse(rows).profit,32000000);});
