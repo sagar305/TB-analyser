@@ -1,3 +1,4 @@
+import {statements} from './statements.js';
 import {categories,mapRows,analyse,amount} from './engine.js';
 import {groups,suggestGroup,financials,ratios,ratioDefinitions,ratioReasoning,samplePeriods,validatePeriod,accountMovements,comparable,contiguous,days} from './comparison.js';
 const $=id=>document.getElementById(id);
@@ -50,11 +51,17 @@ function renderPeers(){
  const matches=a.map((p,i)=>({p,i,j:b.findIndex(q=>q.start===p.start&&q.end===p.end)})).filter(x=>x.j>=0);
  $('peers').innerHTML=`<section class="card"><span class="eyebrow">PEER COMPARISON</span><h2>${esc(data.company.name)} vs ${esc(data.peer.name)}</h2><p>Only identical start and end dates are compared. Both companies use the same formulas and INR. ${matches.length} matched period(s).</p>${!matches.length?'<p>No dates match yet. Import peer TBs for the same reporting periods.</p>':''}${matches.map(({p,i,j})=>{const q=b[j],r1=ratios(p,a[i-1]),r2=ratios(q,b[j-1]);return `<h3>${esc(p.label)} · ${esc(p.start)} → ${esc(p.end)}</h3>${table(['Metric',data.company.name,data.peer.name,'Difference (company − peer)'],ratioDefinitions.map(([id,label,unit])=>[esc(label),number(r1[id],unit),number(r2[id],unit),r1[id]===null||r2[id]===null?'N/A':number(r1[id]-r2[id],unit==='%'?' pp':unit)]))}`;}).join('')}<p class="hint">Differences do not automatically imply better or worse. Business models and accounting policies may differ. Figures require human review.</p></section>`;
 }
+function renderStatements(){
+ const ps=ordered(),records=ps.map(statements);
+ const sections=[['pl','Profit & Loss','Period income and expenses. Expense lines are deductions; figures remain provisional until classifications and adjustments are reviewed.'],['bs','Balance Sheet','Closing assets, liabilities, and equity. Unclosed P&L is shown separately from mapped reserves to reconcile the TB; no profit is added to ratio equity.'],['cf','Cash Flow Statement','Supporting cash-flow figures, entered below with their source. Missing inputs are shown as Not supplied, never assumed to be zero.']];
+ $('statement-tables').innerHTML=sections.map(([key,title,note])=>`<section class="card statement-card"><span class="eyebrow">REVIEW DATA · INR</span><h2>${title}</h2><p class="hint">${note}</p>${ps.length?table(['Particulars',...ps.map(p=>p.label)],records[0][key].map(([label],i)=>[esc(label),...records.map(r=>r[key][i][1]===null?(key==='cf'?'Not supplied':'Review classifications'):money(r[key][i][1]))])):'<p>Import a reporting period to populate this statement.</p>'}</section>`).join('');
+}
 function renderReview(){
+ renderStatements();
  const slots=current().periods.map((p,i)=>({p,i})).filter(x=>x.p);if(!review())reviewSlot=slots.at(-1)?.i??0;
  $('review-period').innerHTML=slots.map(({p,i})=>`<option value="${i}"${i===reviewSlot?' selected':''}>${esc(p.label)}</option>`).join('');
  $('confirm-groups').checked=!!review()?.confirmed;$('confirm-groups').disabled=!review();
- $('cfo').value=Number.isSafeInteger(review()?.cfo)?String(review().cfo/100):'';$('cfo-source').value=review()?.cfoSource||'';renderAccounts();
+ $('cfo').value=Number.isSafeInteger(review()?.cfo)?String(review().cfo/100):'';$('cfo-source').value=review()?.cfoSource||'';for(const key of ['investing','financing','opening','closing','fx'])$('cf-'+key).value=Number.isSafeInteger(review()?.cashFlow?.[key])?String(review().cashFlow[key]/100):'';renderAccounts();
 }
 function renderAccounts(){
  const p=review(),query=$('search').value.toLowerCase();if(!p){$('account-table').innerHTML='<p>No period loaded.</p>';return;}
@@ -69,11 +76,18 @@ function renderChecks(ps){
 }
 function showTab(name){document.querySelectorAll('.tab-panel').forEach(e=>e.hidden=e.id!==name);document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===name);b.setAttribute('aria-pressed',String(b.dataset.tab===name));});}
 function beginPeer(){dataset='peer';$('dataset').value=dataset;render();requestedSlot=null;$('file').click();}
- document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.tab)showTab(b.dataset.tab);if(b.dataset.open)showTab(b.dataset.open);if(b.hasAttribute('data-peer'))beginPeer();if(b.dataset.import!==undefined){requestedSlot=Number(b.dataset.import);$('file').click();}if(b.dataset.review!==undefined){reviewSlot=Number(b.dataset.review);renderReview();showTab('accounts');$('results').scrollIntoView({behavior:'smooth'});}if(b.dataset.remove!==undefined){current().periods[Number(b.dataset.remove)]=null;render();}});
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.tab)showTab(b.dataset.tab);if(b.dataset.open)showTab(b.dataset.open);if(b.hasAttribute('data-peer'))beginPeer();if(b.dataset.import!==undefined){requestedSlot=Number(b.dataset.import);$('file').click();}if(b.dataset.review!==undefined){reviewSlot=Number(b.dataset.review);renderReview();showTab('accounts');document.querySelector('.classification-panel').open=true;$('results').scrollIntoView({behavior:'smooth'});}if(b.dataset.remove!==undefined){current().periods[Number(b.dataset.remove)]=null;render();}});
 $('dataset').onchange=()=>{dataset=$('dataset').value;render();};$('company').oninput=()=>{current().name=$('company').value;$('result-title').textContent=current().name;renderPeers();};
 $('review-period').onchange=()=>{reviewSlot=Number($('review-period').value);renderReview();};$('search').oninput=renderAccounts;
 $('confirm-groups').onchange=()=>{const p=review();if(!p)return;if(p.rows.some(r=>r.group==='Unmapped')){message('Map every account to a ratio group before confirming.');$('confirm-groups').checked=false;return;}p.confirmed=$('confirm-groups').checked;message('');render();};
-$('save-cfo').onclick=()=>{try{const p=review();if(!p)throw Error('Import a period first.');const text=$('cfo').value.trim(),source=$('cfo-source').value.trim();if(text&&!source)throw Error('Enter a source for the operating cash flow figure.');p.cfo=text?amount(text):null;p.cfoSource=text?source:'';render();message('Cash-flow evidence saved locally.');}catch(e){message(e.message);}};
+$('save-cfo').onclick=()=>{try{
+ const p=review();if(!p)throw Error('Import a period first.');
+ const text=$('cfo').value.trim(),source=$('cfo-source').value.trim(),cashFlow={};
+ for(const key of ['investing','financing','opening','closing','fx']){const value=$('cf-'+key).value.trim();cashFlow[key]=value?amount(value):null;}
+ const cfo=text?amount(text):null;
+ if((cfo!==null||Object.values(cashFlow).some(v=>v!==null))&&!source)throw Error('Enter a source for the cash-flow figures.');
+ p.cfo=cfo;p.cfoSource=source;p.cashFlow=cashFlow;render();message('Cash-flow evidence saved locally.');
+ }catch(e){message(e.message);}};
 $('account-table').onchange=e=>{const p=review(),t=e.target;if(!p)return;if(t.dataset.category!==undefined){const r=p.rows[Number(t.dataset.category)];r.category=t.value;r.group=suggestGroup(r);}if(t.dataset.group!==undefined){const r=p.rows[Number(t.dataset.group)];r.group=t.value;if(r.group!=='Unmapped')r.category=groups[r.group];}p.confirmed=false;render();};
 function grid(){return XLSX.utils.sheet_to_json(workbook.Sheets[$('sheet').value],{header:1,defval:'',raw:true});}
 function setupMapping(){const g=grid(),h=Number($('header-row').value)-1,headers=g[h]||[];for(const type of ['name','debit','credit','category','group']){const s=$('map-'+type);s.innerHTML='<option value="-1">'+(['category','group'].includes(type)?'Suggest from account name':'Select column')+'</option>'+headers.map((x,i)=>`<option value="${i}">${esc(x||'Column '+(i+1))}</option>`).join('');const pattern={name:/account|particular|ledger|name/i,debit:/debit|^dr$/i,credit:/credit|^cr$/i,category:/^category$|classification/i,group:/ratio group|^group$/i}[type];s.value=String(headers.findIndex(x=>pattern.test(String(x))));}$('preview').innerHTML=table(headers.map(String),g.slice(h+1,h+4).map(r=>r.map(esc)));}
@@ -100,7 +114,7 @@ $('analyse').onclick=async()=>{try{
  const target=data[importTarget];validatePeriod(p,target.periods.filter((q,i)=>q&&!q.sample&&i!==slot));analyse(p.rows);
  if(target.periods.some(q=>q?.sample)){target.periods=[null,null,null];target.name=importTarget==='company'?'Your company':'Peer company';}target.periods[slot]=p;
  dataset=importTarget;$('dataset').value=dataset;reviewSlot=slot;render();message('Period saved. Review ratio groups and confirm completeness in Review data.');
- if(queue.length)await loadNext();else{$('mapping').hidden=true;workbook=null;showTab('accounts');$('results').scrollIntoView({behavior:'smooth'});}
+ if(queue.length)await loadNext();else{$('mapping').hidden=true;workbook=null;showTab('accounts');document.querySelector('.classification-panel').open=true;$('results').scrollIntoView({behavior:'smooth'});}
  }catch(e){message(e.message);}};
 $('cancel').onclick=()=>{queue=[];workbook=null;$('mapping').hidden=true;};
 $('sample').onclick=()=>{data={company:{name:'Aarohi Enterprises',periods:samplePeriods()},peer:{name:'Illustrative peer',periods:samplePeriods(true)}};dataset='company';$('dataset').value=dataset;reviewSlot=2;queue=[];workbook=null;$('mapping').hidden=true;message('Illustrative data for two companies and three periods. Importing real data replaces sample periods in that dataset.');render();showTab('overview');};
@@ -111,6 +125,12 @@ $('excel').onclick=()=>{
  for(const key of ['company','peer']){const ps=ordered(key);if(!ps.length)continue;
  ps.forEach((p,i)=>{const f=financials(p);const rows=[['Company',data[key].name],['Period',p.label],['Dates',p.start,p.end],['Source',p.source,p.sheet],['Groups reviewed',f.ready?'Yes':'No'],['Operating cash flow',Number.isSafeInteger(p.cfo)?p.cfo/100:'N/A',p.cfoSource],[],['Account','Debit','Credit','Category','Ratio group','Source row'],...p.rows.map(r=>[r.name,r.debit/100,r.credit/100,r.category,r.group,r.sourceRow])];XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(rows),`${key} TB ${i+1}`);checks.push([key,p.label,'Difference',f.base.difference/100]);});
  for(const finding of evidence(ps))checks.push([key,...finding]);
+ const statementData=ps.map(statements);
+ for(const [id,name] of [['pl','P&L'],['bs','Balance Sheet'],['cf','Cash Flow']]){
+  const rows=[['Company',data[key].name],['Particulars',...ps.map(p=>p.label)],...statementData[0][id].map(([label],i)=>[label,...statementData.map(s=>s[id][i][1]===null?'Not available':s[id][i][1]/100)])];
+  if(id==='cf')rows.push(['Cash-flow source',...ps.map(p=>p.cfoSource||'Not supplied')]);
+  XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(rows),`${key} ${name}`);
+ }
  XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Ratio',...ps.map(p=>p.label),'Unit','What this tells you'],...ratioDefinitions.map(([id,label,unit])=>[label,...ps.map((p,i)=>ratios(p,ps[i-1])[id]??'N/A'),unit,ratioReasoning[id]])]),`${key} ratios`);
  const movement=ps.length>1?accountMovements(ps.at(-1),ps.at(-2)):[];XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Account','Prior net debit','Latest net debit','Change'],...movement.map(r=>[r.name,r.prior/100,r.current/100,r.change/100])]),`${key} drivers`);
  }
@@ -121,5 +141,3 @@ $('print').onclick=()=>window.print();
 $('clear').onclick=()=>{data={company:{name:'Your company',periods:[null,null,null]},peer:{name:'Peer company',periods:[null,null,null]}};queue=[];workbook=null;filename='';$('mapping').hidden=true;$('preview').replaceChildren();$('file').value='';render();message('All company and peer trial balances cleared from page memory.');};
 render();
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('offline').textContent='Offline ready. All TB analysis, period comparisons, and exports run on this device.';}).catch(()=>{$('offline').textContent='Analysis works locally. Use the local server if offline caching is unavailable.';});
-
-

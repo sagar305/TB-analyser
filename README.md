@@ -63,3 +63,9 @@ SheetJS Community Edition 0.20.3 is vendored in `frontend/vendor/`; see its Apac
 
 Publish `frontend/` as the static directory on Netlify, GitHub Pages, or another HTTPS static host. No build command or backend deployment is necessary. The requested source repository is https://github.com/sagar305/TB-analyser.
 
+
+## Review data statements
+
+Review data shows three comparative tables: Profit & Loss, Balance Sheet, and Cash Flow Statement, each with all imported periods. The account classification editor is expandable below them. P&L and Balance Sheet require complete reviewed account groups. The Balance Sheet presents the net unclosed P&L separately from mapped equity to reconcile an unclosed TB.
+
+The Cash Flow Statement uses locally entered operating, investing, and financing cash flows, opening/closing cash, and exchange or other reconciling effects. Enter explicit zero where applicable; missing data stays unavailable. Save a source note with the figures. The table calculates closing cash and flags any reconciliation difference. It is a summary of supporting cash-flow evidence, not an automatic cash-flow reconstruction from TB movements. All three statements are also included in Excel and print/PDF output.
