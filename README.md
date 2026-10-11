@@ -43,7 +43,7 @@ All twelve reference ratios are included: revenue growth, EBITDA margin, PAT mar
 - CFO is supplied from a cash-flow statement or reconciled schedule, with evidence retained. It is not guessed from TB movements.
 - Account drivers aggregate matching names case-insensitively. Renamed accounts remain separate. Different classifications across periods are flagged.
 
-Amounts are INR, with dot decimal separators and optional comma grouping. Debit and credit columns must be non-negative. Calculations use integer paise; totals outside JavaScript's safe integer range are rejected. Only closing debit/credit format is supported; convert signed-balance or opening/movement exports first. Subtotal rows other than exact Total / Grand Total must be removed from the input.
+Amounts use the detected or selected reporting currency, with dot decimal separators and optional comma grouping. Debit and credit columns must be non-negative. Calculations use integer paise; totals outside JavaScript's safe integer range are rejected. Only closing debit/credit format is supported; convert signed-balance or opening/movement exports first. Subtotal rows other than exact Total / Grand Total must be removed from the input.
 
 ## Privacy and offline behavior
 
@@ -75,3 +75,8 @@ The Cash Flow Statement uses locally entered operating, investing, and financing
 A sheet with an account-name column and two or three year-labelled debit/credit pairs (for example FY23 DR, FY24 DR, FY25 DR, FY23 CR, FY24 CR, FY25 CR) is detected automatically, including nonadjacent columns and header rows below a title. The import preview pairs the columns, displays dates and reconciliation differences, and lets you edit suggested ratio groups once for every period. Confirm the financial-year start: FY23 is interpreted as the year ending in 2023. Import replaces the selected company's three slots only when you click Import all detected periods.
 
 When supplied, Statement distinguishes balance-sheet accounts from P&L accounts. Suggestions handle contra-assets, prepaid expenses, deferred revenue and service-sector account names. Review these suggestions before confirming completeness. GL code, department, statement, and source row are preserved; the workbook itself is never saved to the repository. Manual mapping remains available for other layouts. Cash flow still requires supporting evidence.
+
+## Currency
+
+The importer detects supported ISO currency codes in worksheet text, comments, workbook currency properties, and currency number formats. An unqualified dollar sign is ambiguous and does not imply USD. Missing or conflicting currency information requires a selection, unless the user has explicitly chosen a currency for that dataset. Use Reporting currency to correct a label; figures are not converted. Each company dataset uses one reporting currency consistently across its periods. Amounts retain the application's two-decimal precision. Currency labels appear in statements, cash-flow inputs, and exported TB/statement sheets. The sample dataset uses INR.
+

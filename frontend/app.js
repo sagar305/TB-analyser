@@ -1,19 +1,23 @@
+import {currencies,detectCurrency} from './currency.js';
 import {statements} from './statements.js';
 import {detectLayout,importDetected} from './importer.js';
 import {categories,mapRows,analyse,amount} from './engine.js';
 import {groups,suggestGroup,financials,ratios,ratioDefinitions,ratioReasoning,samplePeriods,validatePeriod,accountMovements,comparable,contiguous,days} from './comparison.js';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=n=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format((n||0)/100);
+const money=(n,code=data[dataset]?.currency)=>{return new Intl.NumberFormat(code==='INR'?'en-IN':'en-US',{...(code?{style:'currency',currency:code,currencyDisplay:'code'}:{}),minimumFractionDigits:2,maximumFractionDigits:2}).format((n||0)/100);};
 const number=(v,unit='')=>v===null||v===undefined?'N/A':`${v.toLocaleString('en-IN',{maximumFractionDigits:2})}${unit==='days'?' days':unit}`;
 const message=s=>{$('message').textContent=s;};
-let data={company:{name:'Aarohi Enterprises',periods:samplePeriods()},peer:{name:'Peer company',periods:[null,null,null]}};
+let data={company:{name:'Aarohi Enterprises',currency:'INR',periods:samplePeriods()},peer:{name:'Peer company',periods:[null,null,null]}};
 let dataset='company',reviewSlot=2,workbook=null,filename='',queue=[],importTarget='company',requestedSlot=null;
-let detected=null,groupOverrides={};
+let detected=null,groupOverrides={};const currencyChoices={};
+$('currency').innerHTML='<option value="">Select currency</option>'+currencies.map(c=>'<option>'+c+'</option>').join('');
+$('currency').onchange=()=>{current().currency=$('currency').value;currencyChoices[dataset]=current().currency;render();};
+function requireCurrency(){const c=$('currency').value;if(!currencies.includes(c))throw Error('Select the reporting currency above before importing.');data[importTarget].currency=c;return c;}
 function renderDetected(){
  const ps=importDetected(grid(),detected,{source:filename,sheet:$('sheet').value,startMonth:Number($('fiscal-start').value),overrides:groupOverrides});
  $('auto-summary').textContent=`${filename} · ${$('sheet').value}: ${ps.length} periods and ${ps[0].rows.length} accounts detected. Importing replaces the three slots for ${data[importTarget].name}.`;
- $('auto-periods').innerHTML=table(['Period','Start','End','Debit column','Credit column','TB difference'],ps.map((p,i)=>[esc(p.label),p.start,p.end,esc(grid()[detected.header][detected.periods[i].debit]),esc(grid()[detected.header][detected.periods[i].credit]),money(analyse(p.rows).difference)]));
+ $('auto-periods').innerHTML=table(['Period','Start','End','Debit column','Credit column','TB difference'],ps.map((p,i)=>[esc(p.label),p.start,p.end,esc(grid()[detected.header][detected.periods[i].debit]),esc(grid()[detected.header][detected.periods[i].credit]),money(analyse(p.rows).difference,$('currency').value)]));
  $('auto-accounts').innerHTML=table(['GL code','Account','Statement','Suggested ratio group'],ps[0].rows.map(r=>[esc(r.code),esc(r.name),esc(r.statement),`<select data-auto-group="${r.sourceRow}" aria-label="Import group for ${esc(r.name)}">${Object.keys(groups).map(g=>`<option${g===r.group?' selected':''}>${esc(g)}</option>`).join('')}</select>`]));
 }
 $('fiscal-start').onchange=()=>{try{renderDetected();}catch(e){message(e.message);}};
@@ -22,7 +26,7 @@ $('auto-save').onclick=async()=>{try{
  const ps=importDetected(grid(),detected,{source:filename,sheet:$('sheet').value,startMonth:Number($('fiscal-start').value),overrides:groupOverrides,confirmed:$('auto-confirm').checked});
  ps.forEach((p,i)=>{validatePeriod(p,ps.filter((_,j)=>i!==j));analyse(p.rows);});
  if($('auto-confirm').checked&&ps.some(p=>!p.confirmed))throw Error('Resolve unmapped groups before confirming, or uncheck the review confirmation to import for later review.');
- const target=data[importTarget];target.periods=[...ps,...Array(3-ps.length).fill(null)];if(target.name==='Aarohi Enterprises'||target.name==='Illustrative peer')target.name=importTarget==='company'?'Your company':'Peer company';
+ requireCurrency();const target=data[importTarget];target.periods=[...ps,...Array(3-ps.length).fill(null)];if(target.name==='Aarohi Enterprises'||target.name==='Illustrative peer')target.name=importTarget==='company'?'Your company':'Peer company';
  dataset=importTarget;$('dataset').value=dataset;reviewSlot=ps.length-1;$('auto-import').hidden=true;detected=null;render();showTab('accounts');
  message(`Imported ${ps.length} periods together. ${ps.every(p=>p.confirmed)?'Reviewed classifications applied.':'Confirm classifications under Review data to enable statements and ratios.'}`);
  if(queue.length)await loadNext();else{workbook=null;$('results').scrollIntoView({behavior:'smooth'});}
@@ -37,10 +41,10 @@ function valueTable(ps,defs){return table(['Metric',...ps.map(p=>p.label)],defs.
 function metric(label,value,note){return `<div class="metric"><label>${label}</label><b>${value}</b><small>${note}</small></div>`;}
 function status(p){const f=financials(p);return `${f.base.balanced?'Balanced':'Out of balance'} · ${f.ready?'Groups reviewed':'Review groups'}`;}
 function render(){
- const ps=ordered();$('company').value=current().name;
+ const ps=ordered();$('currency').value=current().currency||'';document.querySelectorAll('.currency-label').forEach(e=>e.textContent=current().currency||'select currency');$('company').value=current().name;
  $('period-slots').innerHTML=current().periods.map((p,i)=>`<div class="period-slot"><span class="eyebrow">PERIOD ${i+1}</span><h3>${esc(p?.label||'Add a trial balance')}</h3><small>${p?esc(p.start+' → '+p.end):'Separate file or workbook sheet'}</small><p>${p?esc(status(p)):'Ready for your data'}</p><button data-import="${i}">${p?'Replace TB':'Import TB'}</button>${p?` <button data-review="${i}">Review</button> <button data-remove="${i}" aria-label="Remove period ${i+1}">×</button>`:''}</div>`).join('');
  $('result-title').textContent=current().name;$('data-label').textContent=ps.some(p=>p.sample)?'ILLUSTRATIVE RESULT':'YOUR TRIAL BALANCES';
- $('source').textContent=`${ps.length} of 3 periods · INR · ${ps.map(p=>p.label).join(' / ')}`;
+ $('source').textContent=`${ps.length} of 3 periods · ${current().currency||'Currency not selected'} · ${ps.map(p=>p.label).join(' / ')}`;
  $('balance-badge').textContent=ps.length?`${ps.filter(p=>analyse(p.rows).balanced).length}/${ps.length} periods reconcile`:'No periods imported';
  renderOverview(ps);renderDrivers(ps);renderPeers();renderReview();renderChecks(ps);
 }
@@ -70,12 +74,12 @@ function renderPeers(){
  const a=ordered('company'),b=ordered('peer');
  if(!a.length||!b.length){$('peers').innerHTML='<section class="card empty"><span class="eyebrow">PEER COMPARISON</span><h2>Bring your own benchmark</h2><p>Import peer TBs using Add peer TBs. Nothing is fetched online. Matching reporting periods will be compared with your company.</p><button data-peer class="primary">Add peer TBs</button></section>';return;}
  const matches=a.map((p,i)=>({p,i,j:b.findIndex(q=>q.start===p.start&&q.end===p.end)})).filter(x=>x.j>=0);
- $('peers').innerHTML=`<section class="card"><span class="eyebrow">PEER COMPARISON</span><h2>${esc(data.company.name)} vs ${esc(data.peer.name)}</h2><p>Only identical start and end dates are compared. Both companies use the same formulas and INR. ${matches.length} matched period(s).</p>${!matches.length?'<p>No dates match yet. Import peer TBs for the same reporting periods.</p>':''}${matches.map(({p,i,j})=>{const q=b[j],r1=ratios(p,a[i-1]),r2=ratios(q,b[j-1]);return `<h3>${esc(p.label)} · ${esc(p.start)} → ${esc(p.end)}</h3>${table(['Metric',data.company.name,data.peer.name,'Difference (company − peer)'],ratioDefinitions.map(([id,label,unit])=>[esc(label),number(r1[id],unit),number(r2[id],unit),r1[id]===null||r2[id]===null?'N/A':number(r1[id]-r2[id],unit==='%'?' pp':unit)]))}`;}).join('')}<p class="hint">Differences do not automatically imply better or worse. Business models and accounting policies may differ. Figures require human review.</p></section>`;
+ $('peers').innerHTML=`<section class="card"><span class="eyebrow">PEER COMPARISON</span><h2>${esc(data.company.name)} vs ${esc(data.peer.name)}</h2><p>Only identical start and end dates are compared. Both companies use the same formulas. Currency: ${esc(data.company.currency||'not selected')} / ${esc(data.peer.currency||'not selected')}. No currency conversion is performed. ${matches.length} matched period(s).</p>${!matches.length?'<p>No dates match yet. Import peer TBs for the same reporting periods.</p>':''}${matches.map(({p,i,j})=>{const q=b[j],r1=ratios(p,a[i-1]),r2=ratios(q,b[j-1]);return `<h3>${esc(p.label)} · ${esc(p.start)} → ${esc(p.end)}</h3>${table(['Metric',data.company.name,data.peer.name,'Difference (company − peer)'],ratioDefinitions.map(([id,label,unit])=>[esc(label),number(r1[id],unit),number(r2[id],unit),r1[id]===null||r2[id]===null?'N/A':number(r1[id]-r2[id],unit==='%'?' pp':unit)]))}`;}).join('')}<p class="hint">Differences do not automatically imply better or worse. Business models and accounting policies may differ. Figures require human review.</p></section>`;
 }
 function renderStatements(){
  const ps=ordered(),records=ps.map(statements);
  const sections=[['pl','Profit & Loss','Period income and expenses. Expense lines are deductions; figures remain provisional until classifications and adjustments are reviewed.'],['bs','Balance Sheet','Closing assets, liabilities, and equity. Unclosed P&L is shown separately from mapped reserves to reconcile the TB; no profit is added to ratio equity.'],['cf','Cash Flow Statement','Supporting cash-flow figures, entered below with their source. Missing inputs are shown as Not supplied, never assumed to be zero.']];
- $('statement-tables').innerHTML=sections.map(([key,title,note])=>`<section class="card statement-card"><span class="eyebrow">REVIEW DATA · INR</span><h2>${title}</h2><p class="hint">${note}</p>${ps.length?table(['Particulars',...ps.map(p=>p.label)],records[0][key].map(([label],i)=>[esc(label),...records.map(r=>r[key][i][1]===null?(key==='cf'?'Not supplied':'Review classifications'):money(r[key][i][1]))])):'<p>Import a reporting period to populate this statement.</p>'}</section>`).join('');
+ $('statement-tables').innerHTML=sections.map(([key,title,note])=>`<section class="card statement-card"><span class="eyebrow">REVIEW DATA · ${esc(current().currency||'Currency not selected')}</span><h2>${title}</h2><p class="hint">${note}</p>${ps.length?table(['Particulars',...ps.map(p=>p.label)],records[0][key].map(([label],i)=>[esc(label),...records.map(r=>r[key][i][1]===null?(key==='cf'?'Not supplied':'Review classifications'):money(r[key][i][1]))])):'<p>Import a reporting period to populate this statement.</p>'}</section>`).join('');
 }
 function renderReview(){
  renderStatements();
@@ -115,7 +119,7 @@ function setupMapping(){const g=grid(),h=Number($('header-row').value)-1,headers
 async function loadNext(){
  if(!queue.length){$('mapping').hidden=true;workbook=null;return;}const file=queue.shift();try{
  if(file.size>10*1024*1024)throw Error('Choose a file smaller than 10 MB.');if(!/\.(xlsx|xls|xlsm|csv)$/i.test(file.name))throw Error('Choose Excel or CSV files.');
- workbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false});filename=file.name;$('sheet').innerHTML=workbook.SheetNames.map(n=>`<option>${esc(n)}</option>`).join('');$('header-row').value=1;
+ workbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false,cellNF:true});filename=file.name;const currencyResult=detectCurrency(workbook);$('currency').value=currencyResult.currency||currencyChoices[importTarget]||'';$('currency-note').textContent=currencyResult.reason+' No exchange-rate conversion is performed.';$('sheet').innerHTML=workbook.SheetNames.map(n=>`<option>${esc(n)}</option>`).join('');$('header-row').value=1;
  let slot=requestedSlot??data[importTarget].periods.findIndex(p=>!p||p.sample);if(slot<0)slot=0;requestedSlot=null;$('slot').value=String(slot);
  const existing=data[importTarget].periods[slot];$('period-label').value=existing&&!existing.sample?existing.label:'';$('period-start').value=existing&&!existing.sample?existing.start:'';$('period-end').value=existing&&!existing.sample?existing.end:'';
  $('import-source').textContent=`${filename} → ${data[importTarget].name}. ${queue.length} further file(s) queued. An occupied slot is replaced only after Save.`;
@@ -135,23 +139,23 @@ $('analyse').onclick=async()=>{try{
  const result=mapRows(g,mapping);if(result.errors.length)throw Error(result.errors.slice(0,15).map(x=>`Row ${x.row}: ${x.message}`).join('\n'));
  const groupColumn=Number($('map-group').value);for(const row of result.rows){const supplied=String(g[row.sourceRow-1][groupColumn]??'').trim();row.group=Object.keys(groups).find(k=>k.toLowerCase()===supplied.toLowerCase())||suggestGroup(row);if(row.group!=='Unmapped')row.category=groups[row.group];}
  const slot=Number($('slot').value),p={label:$('period-label').value.trim(),start:$('period-start').value,end:$('period-end').value,rows:result.rows,confirmed:false,cfo:null,cfoSource:'',source:filename,sheet:$('sheet').value,sample:false};
- const target=data[importTarget];validatePeriod(p,target.periods.filter((q,i)=>q&&!q.sample&&i!==slot));analyse(p.rows);
+ const target=data[importTarget];validatePeriod(p,target.periods.filter((q,i)=>q&&!q.sample&&i!==slot));analyse(p.rows);if(target.periods.some((q,i)=>q&&!q.sample&&i!==slot)&&target.currency!==$('currency').value)throw Error('This dataset already contains another currency. Use a separate dataset, or explicitly correct its Reporting currency first.');requireCurrency();
  if(target.periods.some(q=>q?.sample)){target.periods=[null,null,null];target.name=importTarget==='company'?'Your company':'Peer company';}target.periods[slot]=p;
  dataset=importTarget;$('dataset').value=dataset;reviewSlot=slot;render();message('Period saved. Review ratio groups and confirm completeness in Review data.');
  if(queue.length)await loadNext();else{$('mapping').hidden=true;workbook=null;showTab('accounts');document.querySelector('.classification-panel').open=true;$('results').scrollIntoView({behavior:'smooth'});}
  }catch(e){message(e.message);}};
 $('cancel').onclick=()=>{queue=[];workbook=null;$('mapping').hidden=true;};
-$('sample').onclick=()=>{data={company:{name:'Aarohi Enterprises',periods:samplePeriods()},peer:{name:'Illustrative peer',periods:samplePeriods(true)}};dataset='company';$('dataset').value=dataset;reviewSlot=2;queue=[];workbook=null;$('mapping').hidden=true;message('Illustrative data for two companies and three periods. Importing real data replaces sample periods in that dataset.');render();showTab('overview');};
+$('sample').onclick=()=>{data={company:{name:'Aarohi Enterprises',currency:'INR',periods:samplePeriods()},peer:{name:'Illustrative peer',currency:'INR',periods:samplePeriods(true)}};dataset='company';$('dataset').value=dataset;reviewSlot=2;queue=[];workbook=null;$('mapping').hidden=true;message('Illustrative data for two companies and three periods. Importing real data replaces sample periods in that dataset.');render();showTab('overview');};
 $('template').onclick=()=>{const book=XLSX.utils.book_new();for(const [i,p] of samplePeriods().entries()){XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Account','Debit','Credit','Category','Ratio group'],...p.rows.map(r=>[r.name,r.debit/100,r.credit/100,r.category,r.group])]),`Period ${i+1}`);}XLSX.writeFile(book,'Setu-three-period-template.xlsx');};
 $('excel').onclick=()=>{
  if(!ordered('company').length&&!ordered('peer').length)return message('Import data before exporting.');
  const book=XLSX.utils.book_new(),checks=[['Dataset','Period','Account / check','Evidence']],peer=[['Period','Ratio','Company','Peer','Difference','Unit']];
  for(const key of ['company','peer']){const ps=ordered(key);if(!ps.length)continue;
- ps.forEach((p,i)=>{const f=financials(p);const rows=[['Company',data[key].name],['Period',p.label],['Dates',p.start,p.end],['Source',p.source,p.sheet],['Groups reviewed',f.ready?'Yes':'No'],['Operating cash flow',Number.isSafeInteger(p.cfo)?p.cfo/100:'N/A',p.cfoSource],[],['Account','Debit','Credit','Category','Ratio group','Source row','GL code','Department','Source statement'],...p.rows.map(r=>[r.name,r.debit/100,r.credit/100,r.category,r.group,r.sourceRow,r.code||'',r.department||'',r.statement||''])];XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(rows),`${key} TB ${i+1}`);checks.push([key,p.label,'Difference',f.base.difference/100]);});
+ ps.forEach((p,i)=>{const f=financials(p);const rows=[['Company',data[key].name],['Currency',data[key].currency||'Not specified'],['Period',p.label],['Dates',p.start,p.end],['Source',p.source,p.sheet],['Groups reviewed',f.ready?'Yes':'No'],['Operating cash flow',Number.isSafeInteger(p.cfo)?p.cfo/100:'N/A',p.cfoSource],[],['Account','Debit','Credit','Category','Ratio group','Source row','GL code','Department','Source statement'],...p.rows.map(r=>[r.name,r.debit/100,r.credit/100,r.category,r.group,r.sourceRow,r.code||'',r.department||'',r.statement||''])];XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(rows),`${key} TB ${i+1}`);checks.push([key,p.label,'Difference',f.base.difference/100]);});
  for(const finding of evidence(ps))checks.push([key,...finding]);
  const statementData=ps.map(statements);
  for(const [id,name] of [['pl','P&L'],['bs','Balance Sheet'],['cf','Cash Flow']]){
-  const rows=[['Company',data[key].name],['Particulars',...ps.map(p=>p.label)],...statementData[0][id].map(([label],i)=>[label,...statementData.map(s=>s[id][i][1]===null?'Not available':s[id][i][1]/100)])];
+  const rows=[['Company',data[key].name],['Currency',data[key].currency||'Not specified'],['Particulars',...ps.map(p=>p.label)],...statementData[0][id].map(([label],i)=>[label,...statementData.map(s=>s[id][i][1]===null?'Not available':s[id][i][1]/100)])];
   if(id==='cf')rows.push(['Cash-flow source',...ps.map(p=>p.cfoSource||'Not supplied')]);
   XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(rows),`${key} ${name}`);
  }
@@ -165,3 +169,7 @@ $('print').onclick=()=>window.print();
 $('clear').onclick=()=>{data={company:{name:'Your company',periods:[null,null,null]},peer:{name:'Peer company',periods:[null,null,null]}};queue=[];workbook=null;filename='';detected=null;groupOverrides={};$('auto-import').hidden=true;$('auto-accounts').replaceChildren();$('auto-periods').replaceChildren();$('mapping').hidden=true;$('preview').replaceChildren();$('file').value='';render();message('All company and peer trial balances cleared from page memory.');};
 render();
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('offline').textContent='Offline ready. All TB analysis, period comparisons, and exports run on this device.';}).catch(()=>{$('offline').textContent='Analysis works locally. Use the local server if offline caching is unavailable.';});
+
+
+
+

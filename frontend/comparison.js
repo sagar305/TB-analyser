@@ -56,10 +56,10 @@ export const ratioReasoning={
  growth:'Shows whether sales are expanding or contracting. Compare the pace across similar periods; growth alone does not show whether those extra sales are profitable or collected in cash.',
  gross:'Shows how much sales income remains after the cost of goods sold. A falling margin can reflect pricing pressure, a different sales mix, or higher direct costs; review those items before concluding why it changed.',
  ebitda:'Shows earnings retained from revenue before depreciation, interest, and tax. A higher margin can indicate better cost control or pricing, but other income can also lift this measure and it does not represent cash flow.',
- net:'Shows how much of each rupee of revenue remains as profit after interest and tax. If this falls while EBITDA margin holds steady, review depreciation, borrowing costs, and tax charges.',
+ net:'Shows how much of each unit of revenue remains as profit after interest and tax. If this falls while EBITDA margin holds steady, review depreciation, borrowing costs, and tax charges.',
  current:'Indicates the short-term asset cover available for near-term obligations. More cover can provide a cushion, but slow-moving stock or overdue receivables may not turn into cash when bills fall due.',
  quick:'Tests near-term payment capacity without relying on inventory or prepayments. A large gap from the current ratio means liquidity depends more heavily on those less readily available assets.',
- debt:'Shows reliance on borrowings relative to shareholder funds. A rise means more debt for each rupee of equity, which can increase repayment pressure; consider cash generation and loan maturities as well.',
+ debt:'Shows reliance on borrowings relative to shareholder funds. A rise means more debt for each unit of equity, which can increase repayment pressure; consider cash generation and loan maturities as well.',
  coverage:'Shows the earnings cushion available to meet interest costs. A declining figure leaves less room for weaker earnings or higher borrowing costs. It does not measure the ability to repay loan principal.',
  roe:'Shows the profit generated relative to closing shareholder funds. A rise may reflect stronger earnings, but can also result from lower equity or higher borrowing, so review those changes together.',
  cfo:'Checks how reported profit translates into operating cash. Above one means operating cash exceeds profit for that period; below one can reflect cash tied up in working capital or other timing differences.',
@@ -119,3 +119,4 @@ export function samplePeriods(peer=false){
   return {label:`FY ${year-1}–${String(year).slice(2)}`,start:`${year-1}-04-01`,end:`${year}-03-31`,rows,confirmed:true,cfo,cashFlow:{opening,closing,investing,financing:closing-opening-cfo-investing,fx:0},cfoSource:'Illustrative cash-flow statement',source:'Illustrative trial balance',sheet:`FY ${year}`,sample:true};
  });
 }
+
