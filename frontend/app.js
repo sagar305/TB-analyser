@@ -1,5 +1,5 @@
 import {categories,mapRows,analyse,amount} from './engine.js';
-import {groups,suggestGroup,financials,ratios,ratioDefinitions,samplePeriods,validatePeriod,accountMovements,comparable,contiguous,days} from './comparison.js';
+import {groups,suggestGroup,financials,ratios,ratioDefinitions,ratioReasoning,samplePeriods,validatePeriod,accountMovements,comparable,contiguous,days} from './comparison.js';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format((n||0)/100);
@@ -37,7 +37,7 @@ function insights(ps){
 }
 function ratioTable(ps,defs=ratioDefinitions){
  const rr=ps.map((p,i)=>ratios(p,ps[i-1]));
- return table(['Ratio',...ps.map(p=>p.label),'Latest change','Formula'],defs.map(([id,label,unit,formula])=>{const a=rr.at(-1)?.[id],b=rr.at(-2)?.[id];return [esc(label),...rr.map(r=>number(r[id],unit)),a==null||b==null?'N/A':number(a-b,unit==='%'?' pp':unit),esc(formula)];}));
+ return table(['Ratio',...ps.map(p=>p.label),'Latest change','What this tells you'],defs.map(([id,label,unit])=>{const a=rr.at(-1)?.[id],b=rr.at(-2)?.[id];return [esc(label),...rr.map(r=>number(r[id],unit)),a==null||b==null?'N/A':number(a-b,unit==='%'?' pp':unit),esc(ratioReasoning[id])];}));
 }
 function renderDrivers(ps){
  const latest=ps.at(-1),prior=ps.at(-2),moves=latest?accountMovements(latest,prior):[];
@@ -111,7 +111,7 @@ $('excel').onclick=()=>{
  for(const key of ['company','peer']){const ps=ordered(key);if(!ps.length)continue;
  ps.forEach((p,i)=>{const f=financials(p);const rows=[['Company',data[key].name],['Period',p.label],['Dates',p.start,p.end],['Source',p.source,p.sheet],['Groups reviewed',f.ready?'Yes':'No'],['Operating cash flow',Number.isSafeInteger(p.cfo)?p.cfo/100:'N/A',p.cfoSource],[],['Account','Debit','Credit','Category','Ratio group','Source row'],...p.rows.map(r=>[r.name,r.debit/100,r.credit/100,r.category,r.group,r.sourceRow])];XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(rows),`${key} TB ${i+1}`);checks.push([key,p.label,'Difference',f.base.difference/100]);});
  for(const finding of evidence(ps))checks.push([key,...finding]);
- XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Ratio',...ps.map(p=>p.label),'Unit','Formula'],...ratioDefinitions.map(([id,label,unit,formula])=>[label,...ps.map((p,i)=>ratios(p,ps[i-1])[id]??'N/A'),unit,formula])]),`${key} ratios`);
+ XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Ratio',...ps.map(p=>p.label),'Unit','What this tells you'],...ratioDefinitions.map(([id,label,unit])=>[label,...ps.map((p,i)=>ratios(p,ps[i-1])[id]??'N/A'),unit,ratioReasoning[id]])]),`${key} ratios`);
  const movement=ps.length>1?accountMovements(ps.at(-1),ps.at(-2)):[];XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Account','Prior net debit','Latest net debit','Change'],...movement.map(r=>[r.name,r.prior/100,r.current/100,r.change/100])]),`${key} drivers`);
  }
  const a=ordered('company'),b=ordered('peer');a.forEach((p,i)=>{const j=b.findIndex(q=>q.start===p.start&&q.end===p.end);if(j<0)return;const x=ratios(p,a[i-1]),y=ratios(b[j],b[j-1]);for(const [id,label,unit] of ratioDefinitions)peer.push([p.label,label,x[id]??'N/A',y[id]??'N/A',x[id]===null||y[id]===null?'N/A':x[id]-y[id],unit]);});
@@ -121,3 +121,5 @@ $('print').onclick=()=>window.print();
 $('clear').onclick=()=>{data={company:{name:'Your company',periods:[null,null,null]},peer:{name:'Peer company',periods:[null,null,null]}};queue=[];workbook=null;filename='';$('mapping').hidden=true;$('preview').replaceChildren();$('file').value='';render();message('All company and peer trial balances cleared from page memory.');};
 render();
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('offline').textContent='Offline ready. All TB analysis, period comparisons, and exports run on this device.';}).catch(()=>{$('offline').textContent='Analysis works locally. Use the local server if offline caching is unavailable.';});
+
+

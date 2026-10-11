@@ -26,13 +26,13 @@ Open http://127.0.0.1:4173. No package installation or internet connection is re
 4. In Review data, review each period's ratio groups and confirm completeness. Suggestions are not authoritative. Purchases are left unmapped until stock adjustments are included in cost of sales. Changing a classification revokes that period's confirmation.
 5. Inspect Overview, Drivers & ratios, Peer comparison, Review data, and Evidence & checks. Add peer TBs to compare periods with identical start/end dates. The three-period sample includes an illustrative peer when loaded using the sample button.
 6. Enter operating cash flow and a source note for each period in Review data to enable CFO/PAT. Blank means unavailable; an explicitly entered zero is valid.
-7. Export an Excel pack containing all company/peer TBs, ratio formulas, account drivers, comparisons, and evidence. Print / PDF includes the active dataset's analysis plus peer comparisons.
+7. Export an Excel pack containing all company/peer TBs, ratio explanations, account drivers, comparisons, and evidence. Print / PDF includes the active dataset's analysis plus peer comparisons.
 
 Use standalone period income and expenses, not cumulative YTD figures. The first real import removes illustrative periods from that dataset. Replacing one real period preserves the other two. All data remains in page memory.
 
 ## Ratios and comparison rules
 
-All twelve reference ratios are included: revenue growth, EBITDA margin, PAT margin, current ratio, debt/equity, interest coverage, return on equity, CFO/PAT, receivable days, inventory days, payable days, and cash conversion cycle. Gross margin, quick ratio, and return on average assets are also included. Each row shows all periods, latest-period change (percentage points for percentage ratios), and its formula.
+All twelve reference ratios are included: revenue growth, EBITDA margin, PAT margin, current ratio, debt/equity, interest coverage, return on equity, CFO/PAT, receivable days, inventory days, payable days, and cash conversion cycle. Gross margin, quick ratio, and return on average assets are also included. Each row shows all periods, latest-period change (percentage points for percentage ratios), and a plain-language explanation of what it indicates and what to review.
 
 - Ratios require complete, confirmed ratio groups. Missing inputs and non-positive denominators produce N/A, never infinity or invented values.
 - Revenue growth compares durations differing by at most one day (to accommodate leap years).
@@ -62,3 +62,4 @@ SheetJS Community Edition 0.20.3 is vendored in `frontend/vendor/`; see its Apac
 ## Deployment
 
 Publish `frontend/` as the static directory on Netlify, GitHub Pages, or another HTTPS static host. No build command or backend deployment is necessary. The requested source repository is https://github.com/sagar305/TB-analyser.
+

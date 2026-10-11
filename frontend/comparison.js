@@ -52,6 +52,23 @@ export function financials(p){
  return {base,t,ready,revenue,cogs,ebitda,ebit,profit,currentAssets,currentLiabilities,assets:currentAssets+t['Non-current assets'],debt:t['Short-term debt']+t['Long-term debt'],equity:t.Equity};
 }
 const fraction=(a,b)=>b>0?a/b:null;
+export const ratioReasoning={
+ growth:'Shows whether sales are expanding or contracting. Compare the pace across similar periods; growth alone does not show whether those extra sales are profitable or collected in cash.',
+ gross:'Shows how much sales income remains after the cost of goods sold. A falling margin can reflect pricing pressure, a different sales mix, or higher direct costs; review those items before concluding why it changed.',
+ ebitda:'Shows earnings retained from revenue before depreciation, interest, and tax. A higher margin can indicate better cost control or pricing, but other income can also lift this measure and it does not represent cash flow.',
+ net:'Shows how much of each rupee of revenue remains as profit after interest and tax. If this falls while EBITDA margin holds steady, review depreciation, borrowing costs, and tax charges.',
+ current:'Indicates the short-term asset cover available for near-term obligations. More cover can provide a cushion, but slow-moving stock or overdue receivables may not turn into cash when bills fall due.',
+ quick:'Tests near-term payment capacity without relying on inventory or prepayments. A large gap from the current ratio means liquidity depends more heavily on those less readily available assets.',
+ debt:'Shows reliance on borrowings relative to shareholder funds. A rise means more debt for each rupee of equity, which can increase repayment pressure; consider cash generation and loan maturities as well.',
+ coverage:'Shows the earnings cushion available to meet interest costs. A declining figure leaves less room for weaker earnings or higher borrowing costs. It does not measure the ability to repay loan principal.',
+ roe:'Shows the profit generated relative to closing shareholder funds. A rise may reflect stronger earnings, but can also result from lower equity or higher borrowing, so review those changes together.',
+ cfo:'Checks how reported profit translates into operating cash. Above one means operating cash exceeds profit for that period; below one can reflect cash tied up in working capital or other timing differences.',
+ roa:'Shows the profit generated from the assets employed during the period. A change can reflect earnings performance or a change in the asset base. Compare similar durations because this measure is not annualised.',
+ receivable:'Estimates how much sales activity is tied up in unpaid customer balances. More days can signal slower collection or different credit terms; check ageing and seasonal sales before drawing a conclusion.',
+ inventory:'Estimates how long stock is held relative to the cost of sales. Rising days can tie up cash or indicate slow-moving stock, but may also reflect planned stocking for future demand.',
+ payable:'Estimates how long supplier balances remain outstanding. More days can support cash availability, but may also indicate overdue payments; review agreed terms. Cost of sales is used as a proxy for purchases.',
+ cycle:'Estimates how long cash is tied up between holding stock, collecting customer balances, and paying suppliers. A shorter cycle generally releases working capital; inspect the three components to understand the change.'
+};
 export const ratioDefinitions=[
  ['growth','Revenue growth','%','(Revenue − prior revenue) / prior revenue × 100. Requires comparable duration.'],
  ['gross','Gross margin','%','(Revenue − cost of sales) / revenue × 100. Cost of sales must include stock adjustments.'],
