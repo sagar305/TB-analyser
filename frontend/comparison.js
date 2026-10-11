@@ -48,7 +48,7 @@ export function financials(p){
  const ebit=ebitda-t['Depreciation & amortisation'],profit=ebit-t['Interest expense']-t['Tax expense'];
  const currentAssets=sum(['Cash & bank','Receivables','Inventory','Prepayments','Other current assets']);
  const currentLiabilities=sum(['Trade payables','Short-term debt','Other current liabilities']);
- const ready=p.confirmed&&p.rows.every(r=>r.group&&r.group!=='Unmapped');
+ const ready=(p.confirmed||p.autoMapped)&&p.rows.every(r=>r.group&&r.group!=='Unmapped');
  return {base,t,ready,revenue,cogs,ebitda,ebit,profit,currentAssets,currentLiabilities,assets:currentAssets+t['Non-current assets'],debt:t['Short-term debt']+t['Long-term debt'],equity:t.Equity};
 }
 const fraction=(a,b)=>b>0?a/b:null;
@@ -119,4 +119,5 @@ export function samplePeriods(peer=false){
   return {label:`FY ${year-1}–${String(year).slice(2)}`,start:`${year-1}-04-01`,end:`${year}-03-31`,rows,confirmed:true,cfo,cashFlow:{opening,closing,investing,financing:closing-opening-cfo-investing,fx:0},cfoSource:'Illustrative cash-flow statement',source:'Illustrative trial balance',sheet:`FY ${year}`,sample:true};
  });
 }
+
 

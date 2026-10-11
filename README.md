@@ -80,3 +80,15 @@ When supplied, Statement distinguishes balance-sheet accounts from P&L accounts.
 
 The importer detects supported ISO currency codes in worksheet text, comments, workbook currency properties, and currency number formats. An unqualified dollar sign is ambiguous and does not imply USD. Missing or conflicting currency information requires a selection, unless the user has explicitly chosen a currency for that dataset. Use Reporting currency to correct a label; figures are not converted. Each company dataset uses one reporting currency consistently across its periods. Amounts retain the application's two-decimal precision. Currency labels appear in statements, cash-flow inputs, and exported TB/statement sheets. The sample dataset uses INR.
 
+
+## One-pass client workbook import
+
+Drop up to 20 files together. Supported layouts now include separate yearly sheets, multiple signed year columns (in any order), nonadjacent year-specific DR/CR columns, and titled exports with repeated headers and blank rows. The importer reads Entity, Industry and Currency metadata; detects account descriptions and source codes; gathers up to three periods per client; sorts years; and checks debit-credit agreement. Each client remains separate in the dataset selector. Unsupported or ambiguous layouts produce an explicit error or manual mapping rather than guessed totals. Failed files do not remove successful imports.
+
+Industry-independent account rules cover common balance-sheet, revenue, cost and expense names, including manufacturing, SaaS, real estate and wholesale examples. Complete automatic mappings open draft statements and ratios immediately. They are explicitly marked as suggestions, never as human-reviewed. Unknown accounts and assumptions about debt maturity, restricted cash or accounting policy require review. Cash flows are still supporting inputs, not inferred from TBs.
+
+The default financial-year start is a workspace preference remembered on the device. When only a year is supplied, the app discloses that assumption in Evidence & checks; change the setting to adjust automatic periods. No client data is persisted in localStorage.
+
+## GitHub Pages
+
+The repository includes `.github/workflows/pages.yml`. On a push to main it runs tests and deploys only `frontend/` to GitHub Pages. There is no build dependency installation or application backend on the hosted site. If repository permissions prevent automatic Pages setup, select Settings → Pages → Source → GitHub Actions once, then rerun the workflow. `backend/` remains the optional loopback-only static server for completely offline first launches. Opening a hosted site initially downloads static assets; all TB parsing, accounting, comparison and export then run locally without API calls.
