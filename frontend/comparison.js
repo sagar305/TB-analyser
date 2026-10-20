@@ -76,9 +76,9 @@ export const ratioDefinitions=[
  ['net','PAT margin','%','Provisional profit after mapped interest and tax / revenue × 100.'],
  ['current','Current ratio','×','Current assets / current liabilities.'],
  ['quick','Quick ratio','×','(Current assets − inventory − prepayments) / current liabilities.'],
- ['debt','Debt / equity','×','(Short-term debt + long-term debt) / mapped closing equity; no automatic profit addition.'],
+ ['debt','Debt / equity','×','(Short-term debt + long-term debt) / total closing equity including unclosed P&L.'],
  ['coverage','Interest coverage','×','EBIT / interest expense.'],
- ['roe','Return on equity','%','PAT / mapped closing equity × 100.'],
+ ['roe','Return on equity','%','PAT / closing equity including unclosed P&L × 100.'],
  ['cfo','CFO / PAT','×','Entered operating cash flow / PAT. Requires a cash-flow source note.'],
  ['roa','Return on average assets','%','Profit / average opening and closing total assets × 100. Not annualised.'],
  ['receivable','Receivable days','days','Closing receivables / revenue × period days. Total revenue is a proxy for credit sales.'],
@@ -91,9 +91,10 @@ export function ratios(p,previous){
  const result=Object.fromEntries(ratioDefinitions.map(([id])=>[id,null]));
  if(!f.ready)return result;
  const pct=(a,b)=>{const v=fraction(a,b);return v===null?null:v*100;};
- Object.assign(result,{gross:pct(f.revenue-f.cogs,f.revenue),ebitda:pct(f.ebitda,f.revenue),net:pct(f.profit,f.revenue),current:fraction(f.currentAssets,f.currentLiabilities),quick:fraction(f.currentAssets-f.t.Inventory-f.t.Prepayments,f.currentLiabilities),debt:fraction(f.debt,f.equity),coverage:fraction(f.ebit,f.t['Interest expense'])});
+ const closingEquity=f.equity+f.profit;
+ Object.assign(result,{gross:pct(f.revenue-f.cogs,f.revenue),ebitda:pct(f.ebitda,f.revenue),net:pct(f.profit,f.revenue),current:fraction(f.currentAssets,f.currentLiabilities),quick:fraction(f.currentAssets-f.t.Inventory-f.t.Prepayments,f.currentLiabilities),debt:fraction(f.debt,closingEquity),coverage:fraction(f.ebit,f.t['Interest expense'])});
  if(old?.ready&&comparable(previous,p))result.growth=pct(f.revenue-old.revenue,old.revenue);
- result.roe=pct(f.profit,f.equity);
+ result.roe=pct(f.profit,closingEquity);
  result.cfo=Number.isSafeInteger(p.cfo)&&p.cfoSource?.trim()?fraction(p.cfo,f.profit):null;
  for(const [key,g,den] of [['receivable','Receivables',f.revenue],['inventory','Inventory',f.cogs],['payable','Trade payables',f.cogs]]){
   const v=fraction(f.t[g],den);result[key]=v===null?null:v*days(p);

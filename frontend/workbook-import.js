@@ -30,12 +30,12 @@ export function classifyAccount(name,statement=''){
 function findHeader(grid){
  for(let i=0;i<Math.min(grid.length,30);i++){
   const h=grid[i].map(x=>String(x??'').trim());
-  const name=h.findIndex(x=>/description|particular|narration|healthcare account|account name/i.test(x));
+  const name=h.findIndex(x=>/description|particular|narration|healthcare account|account name|^account$/i.test(x));
   if(name<0)continue;
   const debit=h.findIndex(x=>/^debit\b|^dr$/i.test(x)),credit=h.findIndex(x=>/^credit\b|^cr$/i.test(x));
   const signed=h.findIndex(x=>/signed balance|net dr|closing signed/i.test(x));
   if(debit<0&&signed<0)continue;
-  return {header:i,h,name,debit,credit,signed,statement:h.findIndex(x=>/^(fs|statement|mapping)$/i.test(x)),code:h.findIndex(x=>/^(gl (number|ref|code)|account id|ledger)$/i.test(x)),department:h.findIndex(x=>/^(department|cost centre|segment|property|site)$/i.test(x))};
+  return {header:i,h,name,debit,credit,signed,group:h.findIndex(x=>/^ratio group$|^group$/i.test(x)),statement:h.findIndex(x=>/^(fs|statement|mapping)$/i.test(x)),code:h.findIndex(x=>/^(gl (number|ref|code)|account id|ledger)$/i.test(x)),department:h.findIndex(x=>/^(department|cost centre|segment|property|site)$/i.test(x))};
  }
  return null;
 }
@@ -50,7 +50,10 @@ export function parseWorkbook(sheets,{source='',currency=null,startMonth=4}={}){
   const yearColumns=h.h.map((text,index)=>({label:yearLabel(text),index})).filter(x=>x.label&&/signed/i.test(h.h[x.index]));
   const sheetYear=yearLabel(sheet)||yearLabel(grid.slice(0,h.header).flat().join(' '));
   const definitions=yearColumns.length?yearColumns:[{label:sheetYear,index:h.signed}];
-  if(definitions.some(x=>!x.label))throw Error(`${sheet}: no unambiguous year found. Use manual mapping for this sheet.`);
+  // Let the UI collect explicit dates instead of rejecting a perfectly valid,
+  // undated single-period TB. Do not partially import a mixed dated workbook.
+  if(definitions.some(x=>!x.label))return null;
+  if(h.debit>=0&&h.credit<0&&!yearColumns.length)throw Error(`${sheet}: a Debit column requires a Credit column.`);
   for(const def of definitions){
    const rows=[];
    for(let i=h.header+1;i<grid.length;i++){
@@ -63,7 +66,8 @@ export function parseWorkbook(sheets,{source='',currency=null,startMonth=4}={}){
      let debit,credit;
      if(yearColumns.length||h.debit<0){const signed=amount(row[def.index]);debit=Math.max(signed,0);credit=Math.max(-signed,0);}
      else{debit=amount(row[h.debit]);credit=amount(row[h.credit]);if(debit<0||credit<0)throw Error('Negative debit/credit amount; signed balances need a signed column.');}
-     const statement=String(row[h.statement]??''),group=classifyAccount(name,statement);
+     const statement=String(row[h.statement]??''),supplied=String(row[h.group]??'').trim();
+     const group=Object.keys(groups).find(g=>g.toLowerCase()===supplied.toLowerCase())||classifyAccount(name,statement);
      rows.push({name,debit,credit,group,category:groups[group],sourceRow:i+1,code:String(row[h.code]??''),department:String(row[h.department]??''),statement});
     }catch(e){throw Error(`${sheet}, row ${i+1}: ${e.message}`);}
    }

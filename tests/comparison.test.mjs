@@ -6,7 +6,7 @@ test('three sample TBs balance and all reference ratios exist',()=>{
  const ps=samplePeriods();for(const p of ps){assert.equal(financials(p).base.balanced,true);assert.equal(financials(p).base.profit,financials(p).profit);}
  const r=ratios(ps[2],ps[1]);for(const id of ['growth','ebitda','net','current','debt','coverage','roe','cfo','receivable','inventory','payable','cycle'])assert.ok(Number.isFinite(r[id]),id);
  assert.equal(ratioDefinitions.length,15);
- close(r.ebitda,260000/1800000*100);close(r.net,200000/1800000*100);close(r.current,1450000/450000);close(r.debt,600000/1100000);close(r.coverage,230000/20000);close(r.roe,200000/1100000*100);close(r.cfo,1.5);
+ close(r.ebitda,260000/1800000*100);close(r.net,200000/1800000*100);close(r.current,1450000/450000);close(r.debt,600000/1300000);close(r.coverage,230000/20000);close(r.roe,200000/1300000*100);close(r.cfo,1.5);
  close(r.receivable,680000/1800000*365);close(r.inventory,350000/1100000*365);close(r.payable,450000/1100000*365);close(r.cycle,r.receivable+r.inventory-r.payable);
  close(r.growth,(1.3/1.15-1)*100);
 });

@@ -1,94 +1,72 @@
-# Setu Trial Balance Analyser
+# SETU TB Analyzer
 
-A private, offline trial balance analyser with a cream / forest-green interface inspired by the supplied StatementLab reference.
+An offline financial review application. All workbook parsing, account suggestions, calculations, charts, management questions and exports run in the browser. There are no AI calls, API keys, cloud services, analytics or runtime CDN dependencies.
 
-## Run locally
+## Run without internet
 
-Install Node.js 20 or newer, then run from this folder:
+With Node.js 20 or newer installed, run from the repository directory:
 
 ```sh
 node backend/server.mjs
 ```
 
-Open http://127.0.0.1:4173. No package installation or internet connection is required. The bundled Excel library is included in the repository. Alternatively serve `frontend/` with any static web server. Use HTTPS for hosted offline caching.
+Open **http://127.0.0.1:4173/**. No package installation is needed. The app also caches its bundled assets after its first successful visit over localhost or HTTPS; wait for **Offline ready**. A first visit to an uncached hosted URL still needs connectivity. Browser cache removal removes offline availability. Use the local server for a completely disconnected first launch.
 
-## Folders
+## Source folders
 
-- `frontend/`: interface, workbook parsing, deterministic analysis engine, locally bundled Excel parser, and offline service worker.
-- `backend/`: optional dependency-free static server, bound to loopback. It has no analysis/upload endpoints and receives no TB data.
-- `tests/`: analysis regression tests. Run `node --test tests/*.test.mjs`.
+- `frontend/`: all browser UI, financial logic, importers, SVG charts, exports, bundled libraries and offline service worker.
+- `backend/`: optional local static server. It accepts GET/HEAD only and has no upload or analysis endpoint.
+- `tests/`: regression tests for imports, calculations, reconciliation, reports and cached assets.
 
-## Workflow
+The backend is intentionally not needed for financial processing, allowing the frontend to run on GitHub Pages or any static host.
 
-1. Import up to three XLSX, XLS, XLSM or CSV files at once (maximum 10 MB each). Macros are never executed. One dataset holds three periods; a separate peer dataset holds three more.
-2. For each file, select a slot, period label, start/end dates, worksheet, and header row. Map account, closing debit, closing credit, and optional category/ratio group columns. To use three worksheets from one workbook, import that workbook into each slot and select the relevant worksheet. Periods are sorted chronologically; overlapping dates are rejected.
-3. Correct invalid source rows and import again. Blank amounts count as zero; named Total / Grand Total rows are excluded.
-4. In Review data, review each period's ratio groups and confirm completeness. Suggestions are not authoritative. Purchases are left unmapped until stock adjustments are included in cost of sales. Changing a classification revokes that period's confirmation.
-5. Inspect Overview, Drivers & ratios, Peer comparison, Review data, and Evidence & checks. Add peer TBs to compare periods with identical start/end dates. The three-period sample includes an illustrative peer when loaded using the sample button.
-6. Enter operating cash flow and a source note for each period in Review data to enable CFO/PAT. Blank means unavailable; an explicitly entered zero is valid.
-7. Export an Excel pack containing all company/peer TBs, ratio explanations, account drivers, comparisons, and evidence. Print / PDF includes the active dataset's analysis plus peer comparisons.
+## User workflow
 
-Use standalone period income and expenses, not cumulative YTD figures. The first real import removes illustrative periods from that dataset. Replacing one real period preserves the other two. All data remains in page memory.
+1. Import one or several Excel/CSV workbooks (up to 20 files, 10 MB each). Each client holds up to three periods. Supported automatic layouts include separate yearly sheets, year-labelled debit/credit columns (adjacent or separated), and year-labelled signed closing columns. Title rows and repeated headers in the supplied export layouts are handled. Files are read locally, not uploaded to a server.
+2. Entity and explicit currency metadata are detected when present. Currency symbols/number formats are considered; an ambiguous dollar sign alone does not establish USD. Missing or conflicting currencies require review. There is no exchange-rate conversion, and figures are taken in whole currency units, not automatically scaled from thousands/lakhs.
+3. Review suggested account groups. Name-based classification is a draft, not a reliable substitute for accounting judgment. Unmapped accounts suppress statement and ratio values. Confirm completeness and stock adjustments under **Review data**. An unbalanced TB remains visible with reconciliation errors, never silently balanced.
+4. Review dates. Where only a year is provided, the saved financial-year start setting is used and an assumption is recorded. Exact start/end dates can be edited separately for each period; overlapping dates are rejected. Use independent period activity, not cumulative year-to-date TBs. Unrecognized/undated layouts open the manual mapping screen.
+5. Review Overview, Drivers & ratios, P&L & Balance Sheet, Working capital, Management insights, Management questions, Peer comparison, Review data, and Evidence & checks.
+6. Supply cash-flow statement amounts and a source in Review data if available. The three statement tables include P&L, Balance Sheet and Cash Flow. Missing cash-flow amounts stay unavailable. The app checks both the cash-flow arithmetic and its closing-cash difference from the TB.
+7. Export the Excel or PDF review pack. Both include all loaded clients, three statements, variances/common-size analysis, all 15 ratios and explanations, working capital, EBITDA bridge, management findings/questions, checks, peer comparisons and account-level source TBs. PDFs include revenue and waterfall charts; Excel provides their underlying numeric tables, wrapped text, frozen headings and formatted headers.
 
-## Ratios and comparison rules
+The app starts empty. **Analyse three-period sample** explicitly loads synthetic demonstration data, which is labelled illustrative. The downloadable template contains illustrative balances to replace, and currency metadata to update. It imports all three sheets together.
 
-All twelve reference ratios are included: revenue growth, EBITDA margin, PAT margin, current ratio, debt/equity, interest coverage, return on equity, CFO/PAT, receivable days, inventory days, payable days, and cash conversion cycle. Gross margin, quick ratio, and return on average assets are also included. Each row shows all periods, latest-period change (percentage points for percentage ratios), and a plain-language explanation of what it indicates and what to review.
+## Calculation conventions and boundaries
 
-- Ratios require complete, confirmed ratio groups. Missing inputs and non-positive denominators produce N/A, never infinity or invented values.
-- Revenue growth compares durations differing by at most one day (to accommodate leap years).
-- Day ratios use closing balances and actual period days, matching the reference's closing-balance convention. Total revenue proxies credit sales; COGS proxies credit purchases. Quarter/month day counts are not forced to 365.
-- EBITDA includes other income under the displayed formula. PAT depends on included interest, tax, and adjustments.
-- ROE and debt/equity use mapped closing equity; profit is not automatically added because that could double-count closed earnings.
-- Return on average assets requires the preceding period to end one day before the current period starts; it is not annualised.
-- CFO is supplied from a cash-flow statement or reconciled schedule, with evidence retained. It is not guessed from TB movements.
-- Account drivers aggregate matching names case-insensitively. Renamed accounts remain separate. Different classifications across periods are flagged.
+- Monetary arithmetic uses integer hundredths; no rounding plug is inserted to force reconciliation. Input must use dot decimals; negative numbers in explicit debit/credit columns are rejected, while signed-net columns preserve their signs. Two-decimal fixed precision is used for all supported currencies.
+- P&L: revenue plus other income, less mapped COGS, operating expenses, depreciation/amortisation, finance costs and tax. It is not a statutory statement or automated accounting-adjustment engine.
+- Balance Sheet: assets = liabilities + mapped equity + the unclosed P&L balance. Debt/equity and ROE use this same closing equity. If the P&L has already been closed out, its mapped nominal balance should be zero. Do not include both period activity and duplicate profit-transfer balances.
+- All 15 ratios: revenue growth, gross/EBITDA/PAT margins, current/quick ratios, debt/equity, interest coverage, ROE, CFO/PAT, return on average assets, receivable/inventory/payable days and cash conversion cycle.
+- Days use actual period length and closing balances. Revenue substitutes for credit sales, and COGS substitutes for purchases. ROA needs contiguous opening balances. Growth requires comparable period durations. No annualisation is applied.
+- Common size uses revenue for P&L and total assets for Balance Sheet. Percentage variance requires a positive prior baseline; zero/negative baselines show unavailable. Absolute movements are still reported.
+- The EBITDA waterfall reconciles prior EBITDA plus revenue, other income and cost contributions to latest EBITDA. Working-capital balance changes are not represented as measured cash flows.
+- Management screening uses disclosed thresholds: 5% of prior revenue for large account movements, 1 percentage point for EBITDA margin, 5 days for cash-cycle components, current ratio below 1, interest cover below 2, losses and non-positive equity. It generates review questions, not invented business causes or assurance.
+- Account movement matching aggregates trimmed, case-insensitive names. Renamed accounts appear separately. Source rows, GL codes and worksheet names remain available for review.
+- TBs cannot establish debtor/creditor ageing, stock obsolescence, contractual debt maturities, statutory adjustments, or actual operating/investing/financing cash flows without supporting evidence. There are no fabricated industry benchmarks; import an actual peer TB for comparisons.
+- PDF uses standard Latin fonts. Unsupported characters are preserved as explicit Unicode code-point labels, e.g. `[U+...]`; Excel retains the original Unicode text. Excel contains numeric results rather than editable financial calculation formulas.
+- Financial data stays in page memory. Refresh/close clears it; export before leaving. Only the default fiscal-year month is remembered locally. The service worker stores application code, not client TBs.
 
-Amounts use the detected or selected reporting currency, with dot decimal separators and optional comma grouping. Debit and credit columns must be non-negative. Calculations use integer paise; totals outside JavaScript's safe integer range are rejected. Only closing debit/credit format is supported; convert signed-balance or opening/movement exports first. Subtotal rows other than exact Total / Grand Total must be removed from the input.
+## Tests
 
-## Privacy and offline behavior
+```sh
+node --test tests/*.test.mjs
+```
 
-Analysis and exports run entirely in the browser without API calls, telemetry, external fonts, CDNs, or remote processing. A `connect-src 'none'` content security policy blocks page network API requests. Static assets load when opening the application. A service worker caches the app after its first successful visit; wait for the Offline ready notice before disconnecting. Browser storage deletion removes this cache. For a first launch without internet, distribute this repository and use the local server.
+For a sandbox that blocks worker processes, use:
 
-TB data is kept only in page memory, never localStorage or a database. Refreshing or Clear analysis discards it; downloaded files remain on the client's device. No login or API key is required.
+```sh
+node --test --test-isolation=none tests/*.test.mjs
+```
 
-## Accounting scope
+See `TESTING.md` for the latest test coverage and manual workflow results. Test outputs are excluded from Git.
 
-The financial summary and ratios are provisional and based on reviewed account groups. Balance agreement does not prove completeness or correctness. Contra accounts may legitimately trigger unusual-direction flags. Trends require multiple TBs; liquidity ratios require reviewed current/non-current groupings. Cash flows, ageing, and statutory disclosures are not inferred from TBs. PDFs are not accepted as structured TB inputs.
+## GitHub
 
-## Third-party software
+Repository: https://github.com/sagar305/TB-analyser
 
-SheetJS Community Edition 0.20.3 is vendored in `frontend/vendor/`; see its Apache 2.0 license there. No runtime package downloads are needed.
+GitHub Actions runs tests on pushes to `main`. Public hosting is **not automatically enabled or deployed**. The workflow includes an optional manual `deploy_pages` input for deployment to an already-enabled GitHub Pages site. Hosting requires the repository owner to enable Pages and deliberately run that deployment; source-code availability on GitHub is not the same as a live website. A Pages deployment serves only `frontend/`; no backend or financial APIs are required.
 
-## Deployment
+## Bundled dependencies
 
-Publish `frontend/` as the static directory on Netlify, GitHub Pages, or another HTTPS static host. No build command or backend deployment is necessary. The requested source repository is https://github.com/sagar305/TB-analyser.
-
-
-## Review data statements
-
-Review data shows three comparative tables: Profit & Loss, Balance Sheet, and Cash Flow Statement, each with all imported periods. The account classification editor is expandable below them. P&L and Balance Sheet require complete reviewed account groups. The Balance Sheet presents the net unclosed P&L separately from mapped equity to reconcile an unclosed TB.
-
-The Cash Flow Statement uses locally entered operating, investing, and financing cash flows, opening/closing cash, and exchange or other reconciling effects. Enter explicit zero where applicable; missing data stays unavailable. Save a source note with the figures. The table calculates closing cash and flags any reconciliation difference. It is a summary of supporting cash-flow evidence, not an automatic cash-flow reconstruction from TB movements. All three statements are also included in Excel and print/PDF output.
-
-## Automatic multi-period imports
-
-A sheet with an account-name column and two or three year-labelled debit/credit pairs (for example FY23 DR, FY24 DR, FY25 DR, FY23 CR, FY24 CR, FY25 CR) is detected automatically, including nonadjacent columns and header rows below a title. The import preview pairs the columns, displays dates and reconciliation differences, and lets you edit suggested ratio groups once for every period. Confirm the financial-year start: FY23 is interpreted as the year ending in 2023. Import replaces the selected company's three slots only when you click Import all detected periods.
-
-When supplied, Statement distinguishes balance-sheet accounts from P&L accounts. Suggestions handle contra-assets, prepaid expenses, deferred revenue and service-sector account names. Review these suggestions before confirming completeness. GL code, department, statement, and source row are preserved; the workbook itself is never saved to the repository. Manual mapping remains available for other layouts. Cash flow still requires supporting evidence.
-
-## Currency
-
-The importer detects supported ISO currency codes in worksheet text, comments, workbook currency properties, and currency number formats. An unqualified dollar sign is ambiguous and does not imply USD. Missing or conflicting currency information requires a selection, unless the user has explicitly chosen a currency for that dataset. Use Reporting currency to correct a label; figures are not converted. Each company dataset uses one reporting currency consistently across its periods. Amounts retain the application's two-decimal precision. Currency labels appear in statements, cash-flow inputs, and exported TB/statement sheets. The sample dataset uses INR.
-
-
-## One-pass client workbook import
-
-Drop up to 20 files together. Supported layouts now include separate yearly sheets, multiple signed year columns (in any order), nonadjacent year-specific DR/CR columns, and titled exports with repeated headers and blank rows. The importer reads Entity, Industry and Currency metadata; detects account descriptions and source codes; gathers up to three periods per client; sorts years; and checks debit-credit agreement. Each client remains separate in the dataset selector. Unsupported or ambiguous layouts produce an explicit error or manual mapping rather than guessed totals. Failed files do not remove successful imports.
-
-Industry-independent account rules cover common balance-sheet, revenue, cost and expense names, including manufacturing, SaaS, real estate and wholesale examples. Complete automatic mappings open draft statements and ratios immediately. They are explicitly marked as suggestions, never as human-reviewed. Unknown accounts and assumptions about debt maturity, restricted cash or accounting policy require review. Cash flows are still supporting inputs, not inferred from TBs.
-
-The default financial-year start is a workspace preference remembered on the device. When only a year is supplied, the app discloses that assumption in Evidence & checks; change the setting to adjust automatic periods. No client data is persisted in localStorage.
-
-## GitHub Pages
-
-The repository includes `.github/workflows/pages.yml`. On a push to main it runs tests and deploys only `frontend/` to GitHub Pages. There is no build dependency installation or application backend on the hosted site. If repository permissions prevent automatic Pages setup, select Settings → Pages → Source → GitHub Actions once, then rerun the workflow. `backend/` remains the optional loopback-only static server for completely offline first launches. Opening a hosted site initially downloads static assets; all TB parsing, accounting, comparison and export then run locally without API calls.
+SheetJS 0.20.3 (Excel parsing/writing), pdf-lib 1.17.1 (local PDF generation), and JSZip 3.10.1 (Excel formatting). Their distributable code and licence files are in `frontend/vendor/`. These files are bundled, cached and used offline; there is no install step for end users. Developer/CI use of GitHub is separate from client-side TB analysis.
