@@ -89,7 +89,7 @@ test('PDF export is readable and contains a complete paginated pack',async()=>{
 test('formatted Excel preserves numeric values, wraps evidence and freezes headers',async()=>{
   const bytes=await excelBytes(context.XLSX,zipModule.exports,data);
   const zip=await zipModule.exports.loadAsync(bytes),xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
-  assert.match(xml,/state="frozen"/);assert.match(await zip.file('xl/styles.xml').async('string'),/FF173E31/);
+  assert.match(xml,/state="frozen"/);assert.match(await zip.file('xl/styles.xml').async('string'),/FF26306B/);
   const book=context.XLSX.read(bytes,{type:'array'}),pl=book.SheetNames.find(n=>n.endsWith('Profit and Loss'));
   assert.equal(context.XLSX.utils.sheet_to_json(book.Sheets[pl],{header:1}).find(r=>r[0]==='Profit after tax')[3],260000);
 });
