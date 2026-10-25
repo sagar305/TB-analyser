@@ -20,3 +20,11 @@ test('yearly signed sheets use signs, not the normal-side description',()=>{
 test('duplicate years and invalid amounts are rejected without silently combining',()=>{
  const s={name:'FY2024',grid:[['GL Description','Debit','Credit'],['Cash',10,0]]};assert.throws(()=>parseWorkbook([s,s]),/same year/);assert.throws(()=>parseWorkbook([{...s,grid:[s.grid[0],['Cash','oops',0]]}]),/row 2/);
 });
+
+test('one-period pre-closing TB excludes closing transfers, footer checks and source journals',()=>{
+ const r=parseWorkbook([{name:'Annual TB',grid:[['Restaurant 2025 annual trial balance'],['Revenue and expenses cover January 1–December 31, 2025.'],['GL code','Account name','Account class','Pre-closing debit','Pre-closing credit','Closing debit','Closing credit','Post-closing debit','Post-closing credit'],['1000','Operating bank','Asset',180,0,0,0,180,0],['3000','Owner contributed capital','Equity',0,100,0,0,0,100],['3200','Owner distributions','Distribution',20,0,0,20,0,0],['4000','Food sales','Revenue',0,150,150,0,0,0],['6000','Cleaning and laundry','Expense',50,0,0,50,0,0],['','TOTAL','',250,250,150,70,180,100],['','Net income','',100],['Notes only']]},{name:'Source journal',grid:[['2025'],['Journal ID','Description','Debit','Credit'],['J001','Opening balances',100,0]]}],{source:'example.xlsx'});
+ assert.equal(r.periods.length,1);const p=r.periods[0],f=financials(p);
+ assert.equal(p.rows.length,5);assert.equal(p.start,'2025-01-01');assert.equal(p.end,'2025-12-31');assert.equal(p.datesExplicit,true);
+ assert.equal(f.base.difference,0);assert.equal(f.revenue,15000);assert.equal(f.profit,10000);assert.equal(f.equity,8000);assert.equal(f.ready,true);
+ assert.ok(p.importWarnings.some(x=>x.includes('Pre-closing')));
+});

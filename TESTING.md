@@ -51,3 +51,7 @@ A generated 23-page single-company sample PDF was reopened successfully. Rendere
 - PDF standard-font limitations and fixed two-decimal monetary precision are documented in README.
 - Client data is not persisted across page refresh. Export before leaving.
 - Browser testing used the desktop in-app browser; no claim of exhaustive Safari/mobile-device or very-large-ledger testing.
+
+## Restaurant single-period regression — 25 October 2026
+
+42 automated tests passed. The restaurant workbook was verified locally and through the browser: 43 accounts, explicit 1 January–31 December 2025 dates, USD 750,000 revenue, USD 106,500 EBITDA, USD 79,500 profit, and zero TB/Balance Sheet differences. The importer selects pre-closing balances, stops at the account-table total, excludes journal sheets with a Journal ID column, and uses account-class hints. Closing transfers and post-closing balances are not mixed into the analysis. The source workbook is not committed. Automatic classifications remain subject to review.
