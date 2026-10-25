@@ -72,7 +72,7 @@ export async function excelBytes(XLSX,JSZip,data) {
     return index;
   }
   const font=append('fonts','<font><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><b/></font>');
-  const fill=append('fills','<fill><patternFill patternType="solid"><fgColor rgb="FF173E31"/><bgColor indexed="64"/></patternFill></fill>');
+  const fill=append('fills','<fill><patternFill patternType="solid"><fgColor rgb="FF26306B"/><bgColor indexed="64"/></patternFill></fill>');
   const header=append('cellXfs',`<xf numFmtId="0" fontId="${font}" fillId="${fill}" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>`);
   const body=append('cellXfs','<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>');
   zip.file('xl/styles.xml',styles);
@@ -94,7 +94,7 @@ export async function excelBytes(XLSX,JSZip,data) {
 export async function pdfPack(PDFLib,data) {
   const {PDFDocument,StandardFonts,rgb}=PDFLib,doc=await PDFDocument.create();
   const font=await doc.embedFont(StandardFonts.Helvetica),bold=await doc.embedFont(StandardFonts.HelveticaBold);
-  const green=rgb(.09,.24,.19),ink=rgb(.13,.18,.15),pale=rgb(.93,.95,.91);
+  const green=rgb(.15,.19,.42),ink=rgb(.05,.07,.14),pale=rgb(.93,.92,.89);
   let page,y,pageNo=0;
   const clean=s=>String(s??'').replace(/[–—−]/g,'-').replace(/→/g,' to ').replace(/₹/g,'INR ').replace(/×/g,'x').replace(/[^\x20-\x7e\n\u00a0-\u00ff]/gu,ch=>'[U+'+ch.codePointAt(0).toString(16).toUpperCase()+']');
   const wrap=(value,width,size=9)=>{
@@ -141,7 +141,7 @@ export async function pdfPack(PDFLib,data) {
         const count=Math.min(remaining,Math.max(1,Math.floor((y-56)/12))),height=count*12+12;
         if(heading)page.drawRectangle({x:32,y:y-height+4,width:778,height,color:pale});
         let x=32;lines.forEach((ls,i)=>{ls.slice(offset,offset+count).forEach((l,j)=>text(l,x+7,y-9-j*12,heading?8:9,heading));x+=widths[i];});
-        y-=height;page.drawLine({start:{x:32,y:y+3},end:{x:810,y:y+3},thickness:.4,color:rgb(.85,.88,.84)});
+        y-=height;page.drawLine({start:{x:32,y:y+3},end:{x:810,y:y+3},thickness:.4,color:rgb(.89,.87,.82)});
         remaining-=count;offset+=count;
         if(remaining>0){newPage(s);if(!heading)drawRow(s.headers,true);}
       }
