@@ -28,3 +28,20 @@ test('one-period pre-closing TB excludes closing transfers, footer checks and so
  assert.equal(f.base.difference,0);assert.equal(f.revenue,15000);assert.equal(f.profit,10000);assert.equal(f.equity,8000);assert.equal(f.ready,true);
  assert.ok(p.importWarnings.some(x=>x.includes('Pre-closing')));
 });
+
+test('generic debit-credit layouts work with reordered columns, currency suffixes, titles and no classes',()=>{
+ for(const headers of [['Account Name','Debit (USD)','Credit (USD)','GL Code'],['Ledger name','DR (USD)','CR (USD)','GL code'],['Account_Name','Debit','Credit','GL code']]){
+  const r=parseWorkbook([{name:'TB 2025',grid:[['As of December 31, 2025'],headers,['Cash',100,0,'100'],['Employee benefits',10,0,'601'],['Capital',0,110,'300'],['TOTAL',110,110,''],[],['Debit less credit (must be zero)',0,0,'']]}]);
+  const p=r.periods[0];assert.equal(p.rows.length,3);assert.equal(p.start,'2025-01-01');assert.equal(p.end,'2025-12-31');assert.ok(p.dateAssumption.includes('assumes a full year'));assert.equal(financials(p).ready,true);assert.equal(financials(p).base.difference,0);assert.equal(financials(p).profit,-1000);
+ }
+ const p=parseWorkbook([{name:'TB2025',grid:[['Credit','Ledger','Debit'],[110,'Capital',0],[0,'Cash',100],[0,'Professional fees',10],['110','TOTAL','110']]}]).periods[0];assert.equal(financials(p).profit,-1000);assert.equal(p.rows.length,3);
+});
+test('unknown accounts are retained for review and closing dates do not override other years',()=>{
+ const p=parseWorkbook([{name:'2025',grid:[['Account','Debit','Credit','GL code'],['Unfamiliar account',10,0,'X'],['Capital',0,10,'Y'],['TOTAL',10,10,''],['TB difference',0,0,'Z']]}]).periods[0];
+ assert.equal(p.rows.length,3);assert.equal(p.rows[0].debit,1000);assert.equal(p.rows[0].group,'Unmapped');assert.equal(financials(p).ready,false);
+ const r=parseWorkbook([{name:'TB',grid:[['December 31, 2025'],['Account name','2024 closing signed','2025 closing signed'],['Cash',1,2],['Capital',-1,-2]]}]);assert.deepEqual(r.periods.map(p=>p.end),['2024-03-31','2025-03-31']);
+});
+
+test('account descriptions take priority over ledger identifier columns',()=>{
+ const p=parseWorkbook([{name:'2025',grid:[['Property','Ledger','Account description','FS','Signed balance'],['Site','1000','Cash','BS',100],['Site','3000','Share capital','BS',-100]]}]).periods[0];assert.equal(p.rows[0].name,'Cash');assert.equal(p.rows[0].code,'1000');assert.equal(financials(p).ready,true);
+});
