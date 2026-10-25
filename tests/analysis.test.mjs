@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {samplePeriods,financials,ratios} from '../frontend/comparison.js';
 import {statements} from '../frontend/statements.js';
-import {variance,statementAnalysis,waterfall,workingCapital,checks,management} from '../frontend/analysis.js';
+import {analysisView,variance,statementAnalysis,waterfall,workingCapital,checks,management} from '../frontend/analysis.js';
 import {reportSections,excelPack,excelBytes,pdfPack} from '../frontend/report.js';
 import {parseWorkbook} from '../frontend/workbook-import.js';
 import fs from 'node:fs';
@@ -98,4 +98,14 @@ test('undated basic TB opens manual mapping, missing credit fails, supplied grou
   assert.throws(()=>parseWorkbook([{name:'2025',grid:[['Account name','Debit'],['Cash',10]]}]),/Credit/);
   const r=parseWorkbook([{name:'2025',grid:[['Account name','Debit','Credit','Ratio group'],['My custom bank',10,0,'Other current assets'],['Capital',0,10,'Equity']]}]);
   assert.equal(r.periods[0].rows[0].group,'Other current assets');
+});
+
+test('single-period analysis resets stale comparison views and retains actual amounts',()=>{
+ for(const mode of ['variance','percent']) assert.equal(analysisView([ps[0]],mode).mode,'values');
+ assert.equal(analysisView([ps[0]],'common').mode,'common');
+ assert.equal(analysisView(ps,'variance').mode,'variance');
+ assert.equal(analysisView([],'percent').canCompare,false);
+ assert.equal(statementAnalysis([ps[0]],'pl')[0].values[0],financials(ps[0]).revenue);
+ const p=structuredClone(ps[0]);p.rows[0].group='Unmapped';
+ assert.deepEqual(analysisView([p]).needsReview,[p.label]);
 });

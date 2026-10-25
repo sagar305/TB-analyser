@@ -1,6 +1,12 @@
 import {financials, ratios, comparable, accountMovements} from './comparison.js';
 import {statements} from './statements.js';
 
+export function analysisView(periods, requested='values') {
+  const canCompare=periods.length>1;
+  const mode=['values','common','variance','percent'].includes(requested)&&
+    (canCompare||!['variance','percent'].includes(requested))?requested:'values';
+  return {mode,canCompare,needsReview:periods.filter(p=>!financials(p).ready).map(p=>p.label)};
+}
 export function variance(value, prior) {
   if(value === null || prior === null) return {change:null,percent:null};
   return {change:value-prior,percent:prior>0?(value-prior)/prior*100:null};
