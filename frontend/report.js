@@ -150,6 +150,6 @@ export async function pdfPack(PDFLib,data) {
     for(const row of s.rows.length?s.rows:[['No comparison available',...s.headers.slice(1).map(()=>'')]])drawRow(row);
   }
   if(!pageNo)throw Error('Import a trial balance before exporting.');
-  doc.setTitle('SETU Financial Review');doc.setAuthor('SETU Offline TB Analyzer');
+  doc.setTitle('SETU Financial Review');doc.setAuthor('SETU Offline TB Analyser');
   return doc.save();
 }

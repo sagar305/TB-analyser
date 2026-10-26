@@ -1,4 +1,4 @@
-# SETU TB Analyzer
+# SETU TB Analyser
 
 An offline financial review application. All workbook parsing, account suggestions, calculations, charts, management questions and exports run in the browser. There are no AI calls, API keys, cloud services, analytics or runtime CDN dependencies.
 
