@@ -1,6 +1,8 @@
 # SETU TB Analyzer
 
-An offline financial review application. All workbook parsing, account suggestions, calculations, charts, management questions and exports run in the browser. There are no AI calls, API keys, cloud services, analytics or runtime CDN dependencies.
+An offline financial review application. All workbook parsing, account suggestions, calculations, charts, management questions and exports run in the browser. There are no AI calls, API keys, cloud services, analytics SDKs or runtime CDN dependencies, and the app itself makes no network calls.
+
+When the app is framed by its product page on setutechnology.com, `frontend/activity.js` tells that page that a step was reached (`sample_loaded`, `template_downloaded`, `periods_imported`, `cash_flow_saved`, `excel_exported`, `pdf_exported`) so the site can count usage. A signal is a name from that fixed list and nothing else: no figures, account names, file names or counts. Opened on its own, the app announces nothing.
 
 ## Run without internet
 
